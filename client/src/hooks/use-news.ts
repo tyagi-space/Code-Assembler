@@ -82,6 +82,64 @@ export function useDeleteNews() {
   });
 }
 
+export function useDeleteNewsByCategory() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (category: string) => {
+      const res = await fetch(api.news.deleteByCategory.path, {
+        method: api.news.deleteByCategory.method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category }),
+      });
+      if (!res.ok) throw new Error("Failed to delete category articles");
+      return (await res.json()) as { message: string; count: number };
+    },
+    onSuccess: ({ count, message }) => {
+      queryClient.invalidateQueries({ queryKey: [api.news.list.path] });
+      toast({ title: "Category delete complete", description: `${message} (${count})` });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Could not delete category articles.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteNewsByDate() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (date: string) => {
+      const res = await fetch(api.news.deleteByDate.path, {
+        method: api.news.deleteByDate.method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      });
+      if (!res.ok) throw new Error("Failed to delete date articles");
+      return (await res.json()) as { message: string; count: number };
+    },
+    onSuccess: ({ count, message }) => {
+      queryClient.invalidateQueries({ queryKey: [api.news.list.path] });
+      toast({ title: "Date delete complete", description: `${message} (${count})` });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Could not delete date-based articles.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useFetchNews() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

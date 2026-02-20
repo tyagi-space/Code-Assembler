@@ -47,6 +47,7 @@ export default function NewsDetail() {
 
   // Safe fallback for image
   const displayImage = item.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop";
+  const hasHtmlContent = !!item.content && /<\/?[a-z][\s\S]*>/i.test(item.content);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -92,7 +93,13 @@ export default function NewsDetail() {
             
             {/* If content exists, render it. Often API only returns summary/description */}
             {item.content ? (
-              <div dangerouslySetInnerHTML={{ __html: item.content }} />
+              hasHtmlContent ? (
+                <div dangerouslySetInnerHTML={{ __html: item.content }} />
+              ) : (
+                <div className="whitespace-pre-line leading-relaxed text-foreground/90">
+                  {item.content}
+                </div>
+              )
             ) : (
               <div className="bg-muted/30 p-8 rounded-xl border text-center my-8">
                 <p className="mb-4 text-muted-foreground">This is a summary of the article.</p>

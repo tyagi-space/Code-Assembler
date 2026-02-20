@@ -29,6 +29,7 @@ export function NewsCard({
   
   // Fallback image if none provided
   const displayImage = imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop";
+  const isSourceLogo = displayImage.includes("google.com/s2/favicons");
 
   return (
     <motion.div
@@ -43,7 +44,7 @@ export function NewsCard({
             <img 
               src={displayImage} 
               alt={title} 
-              className="object-cover w-full h-full transform transition-transform duration-700 group-hover:scale-105"
+              className={`w-full h-full transform transition-transform duration-700 group-hover:scale-105 ${isSourceLogo ? "object-contain p-8 bg-muted/20" : "object-cover"}`}
             />
             <div className="absolute top-4 left-4">
               <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm text-foreground font-medium shadow-sm">

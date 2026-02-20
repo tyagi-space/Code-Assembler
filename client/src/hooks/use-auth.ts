@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
-import type { InsertUser, UserResponse } from "@shared/schema";
+import type { InsertUser, RegisterUserInput, UserResponse } from "@shared/schema";
 import { useLocation } from "wouter";
 
 export function useAuth() {
@@ -49,7 +49,7 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    mutationFn: async (credentials: RegisterUserInput) => {
       const res = await fetch(api.auth.register.path, {
         method: api.auth.register.method,
         headers: { "Content-Type": "application/json" },
@@ -63,12 +63,26 @@ export function useAuth() {
         }
         throw new Error("Registration failed");
       }
-      return await res.json();
+      return (await res.json()) as {
+        user: UserResponse;
+        autoLogin: boolean;
+        message: string;
+      };
     },
-    onSuccess: (user: UserResponse) => {
-      queryClient.setQueryData([api.auth.me.path], user);
-      toast({ title: "Account created!", description: "Welcome to Daily News" });
-      setLocation("/");
+    onSuccess: (payload) => {
+      if (payload.autoLogin) {
+        queryClient.setQueryData([api.auth.me.path], payload.user);
+        toast({ title: "Account created!", description: payload.message });
+        setLocation("/");
+        return;
+      }
+
+      queryClient.setQueryData([api.auth.me.path], null);
+      toast({
+        title: "Request submitted",
+        description: payload.message,
+      });
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({ title: "Registration failed", description: error.message, variant: "destructive" });

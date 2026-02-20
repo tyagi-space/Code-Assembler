@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { users, news, type InsertUser, type User, type InsertNews, type News } from "@shared/schema";
-import { eq, desc, ilike, or, count } from "drizzle-orm";
+import { eq, desc, ilike, or, count, and, gte, lt } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -14,12 +14,18 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getPendingAdminUsers(): Promise<User[]>;
+  approveAdminUser(id: string): Promise<User | undefined>;
+  rejectAdminUser(id: string): Promise<User | undefined>;
   
   getNews(params?: { category?: string, search?: string, page?: number, limit?: number }): Promise<{ items: News[], total: number }>;
   getNewsById(id: string): Promise<News | undefined>;
   getNewsByUrl(sourceUrl: string): Promise<News | undefined>;
   createNews(newsData: InsertNews): Promise<News>;
+  updateNewsImage(id: string, imageUrl: string): Promise<void>;
   deleteNews(id: string): Promise<void>;
+  deleteNewsByCategory(category: string): Promise<number>;
+  deleteNewsByDate(date: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -28,27 +34,68 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     this.sessionStore = new PostgresSessionStore({
       pool,
-      createTableIfMissing: true,
+      createTableIfMissing: false,
     });
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.isDeleted, false)));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.username, username), eq(users.isDeleted, false)));
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), eq(users.isDeleted, false)));
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getPendingAdminUsers(): Promise<User[]> {
+    return db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.adminStatus, "pending"),
+          eq(users.isAdmin, true),
+          eq(users.isDeleted, false),
+        ),
+      )
+      .orderBy(desc(users.createdAt));
+  }
+
+  async approveAdminUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isActive: true, isAdmin: true, isDeleted: false, adminStatus: "approved" })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async rejectAdminUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isActive: false, isAdmin: false, isDeleted: true, adminStatus: "rejected" })
+      .where(eq(users.id, id))
+      .returning();
     return user;
   }
 
@@ -94,8 +141,35 @@ export class DatabaseStorage implements IStorage {
     return article;
   }
 
+  async updateNewsImage(id: string, imageUrl: string): Promise<void> {
+    await db
+      .update(news)
+      .set({ imageUrl })
+      .where(eq(news.id, id));
+  }
+
   async deleteNews(id: string): Promise<void> {
     await db.delete(news).where(eq(news.id, id));
+  }
+
+  async deleteNewsByCategory(category: string): Promise<number> {
+    const deleted = await db
+      .delete(news)
+      .where(eq(news.category, category))
+      .returning({ id: news.id });
+    return deleted.length;
+  }
+
+  async deleteNewsByDate(date: string): Promise<number> {
+    const start = new Date(`${date}T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+
+    const deleted = await db
+      .delete(news)
+      .where(and(gte(news.publishedAt, start), lt(news.publishedAt, end)))
+      .returning({ id: news.id });
+    return deleted.length;
   }
 }
 

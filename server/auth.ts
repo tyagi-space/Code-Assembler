@@ -51,6 +51,19 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Invalid username or password" });
         }
+        if (!user.isActive) {
+          if (user.adminStatus === "pending") {
+            return done(null, false, {
+              message: "Admin request is pending approval.",
+            });
+          }
+          if (user.adminStatus === "rejected") {
+            return done(null, false, {
+              message: "Admin request was rejected.",
+            });
+          }
+          return done(null, false, { message: "Account is inactive." });
+        }
         return done(null, user);
       } catch (err) {
         return done(err);

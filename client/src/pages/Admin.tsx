@@ -1,5 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useNews, useDeleteNews, useFetchNews } from "@/hooks/use-news";
+import {
+  useNews,
+  useDeleteNews,
+  useFetchNews,
+  useDeleteNewsByCategory,
+  useDeleteNewsByDate,
+} from "@/hooks/use-news";
+import {
+  useApproveAdminRequest,
+  usePendingAdminRequests,
+  useRejectAdminRequest,
+} from "@/hooks/use-admin-requests";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +34,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
-import { Loader2, Trash2, RefreshCw, ExternalLink, Plus } from "lucide-react";
+import { Loader2, Trash2, RefreshCw, ExternalLink, ShieldCheck, ShieldX } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
@@ -33,8 +45,19 @@ export default function Admin() {
   const [page, setPage] = useState(1);
   
   const { data, isLoading: newsLoading } = useNews({ page: page.toString() });
+  const {
+    data: pendingAdmins,
+    isLoading: pendingLoading,
+    error: pendingError,
+  } = usePendingAdminRequests();
   const deleteNews = useDeleteNews();
   const fetchNews = useFetchNews();
+  const deleteByCategory = useDeleteNewsByCategory();
+  const deleteByDate = useDeleteNewsByDate();
+  const approveRequest = useApproveAdminRequest();
+  const rejectRequest = useRejectAdminRequest();
+  const [bulkCategory, setBulkCategory] = useState("Technology");
+  const [bulkDate, setBulkDate] = useState("");
 
   if (authLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
 
@@ -74,7 +97,112 @@ export default function Admin() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-card border rounded-xl p-4">
+            <h3 className="font-semibold mb-2">Bulk Delete by Category</h3>
+            <div className="flex gap-2">
+              <select
+                value={bulkCategory}
+                onChange={(e) => setBulkCategory(e.target.value)}
+                className="h-10 px-3 rounded-md border border-input bg-background text-sm flex-1"
+              >
+                {["World", "Technology", "Business", "Health", "Science", "Sports", "Entertainment", "National"].map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <Button
+                variant="destructive"
+                onClick={() => deleteByCategory.mutate(bulkCategory)}
+                disabled={deleteByCategory.isPending}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+
+          <div className="bg-card border rounded-xl p-4">
+            <h3 className="font-semibold mb-2">Bulk Delete by Date</h3>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={bulkDate}
+                onChange={(e) => setBulkDate(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                variant="destructive"
+                onClick={() => bulkDate && deleteByDate.mutate(bulkDate)}
+                disabled={deleteByDate.isPending || !bulkDate}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+          <div className="p-6 border-b">
+            <h2 className="font-semibold text-lg">Pending Admin Requests</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Review and approve or reject users requesting admin access.
+            </p>
+          </div>
+          {pendingLoading ? (
+            <div className="p-6 text-sm text-muted-foreground">Loading requests...</div>
+          ) : pendingError ? (
+            <div className="p-6 text-sm text-destructive">
+              Failed to load pending requests. Ensure you are logged in as an approved admin.
+            </div>
+          ) : !pendingAdmins || pendingAdmins.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No pending admin requests.</div>
+          ) : (
+            <div className="relative w-full overflow-auto border-b">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingAdmins.map((pending) => (
+                    <TableRow key={pending.id}>
+                      <TableCell className="font-medium">{pending.username}</TableCell>
+                      <TableCell>{pending.email}</TableCell>
+                      <TableCell>{format(new Date(pending.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => approveRequest.mutate(pending.id)}
+                            disabled={approveRequest.isPending || rejectRequest.isPending}
+                            className="gap-1"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => rejectRequest.mutate(pending.id)}
+                            disabled={approveRequest.isPending || rejectRequest.isPending}
+                            className="gap-1"
+                          >
+                            <ShieldX className="h-4 w-4" />
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
           <div className="p-6 border-b">
             <h2 className="font-semibold text-lg">News Articles</h2>
           </div>

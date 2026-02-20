@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useNews } from "@/hooks/use-news";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -10,14 +10,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function Home() {
-  const [location, setLocation] = useLocation();
-  
-  // Parse query params properly
-  const searchParams = new URLSearchParams(window.location.search);
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const category = searchParams.get("category") || undefined;
   const page = searchParams.get("page") || "1";
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("search") || "");
+  }, [searchParams]);
   
   const { data, isLoading, error } = useNews({ 
     category, 
@@ -27,7 +30,7 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(search);
     if (searchTerm) params.set("search", searchTerm);
     else params.delete("search");
     params.set("page", "1"); // Reset to page 1
@@ -35,7 +38,7 @@ export default function Home() {
   };
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(search);
     params.set("page", newPage.toString());
     setLocation(`/?${params.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });

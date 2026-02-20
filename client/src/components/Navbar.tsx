@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { 
@@ -16,20 +16,22 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 export function Navbar() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const search = useSearch();
   const [isOpen, setIsOpen] = useState(false);
+  const activeCategory = new URLSearchParams(search).get("category");
 
-  const categories = ["General", "Technology", "Business", "Health", "Science", "Sports", "Entertainment"];
+  const categories = ["Technology", "Business", "Health", "Science", "Sports", "Entertainment"];
 
   const NavLinks = () => (
     <>
-      <Link href="/" className={`text-sm font-medium transition-colors hover:text-primary ${location === "/" && !location.includes("?") ? "text-primary" : "text-muted-foreground"}`}>
+      <Link href="/" className={`text-sm font-medium transition-colors hover:text-primary ${location === "/" && !activeCategory ? "text-primary" : "text-muted-foreground"}`}>
         Latest
       </Link>
       {categories.map((cat) => (
         <Link 
           key={cat} 
-          href={`/?category=${cat}`} 
-          className={`text-sm font-medium transition-colors hover:text-primary ${location.includes(`category=${cat}`) ? "text-primary" : "text-muted-foreground"}`}
+          href={`/?category=${encodeURIComponent(cat)}`} 
+          className={`text-sm font-medium transition-colors hover:text-primary ${activeCategory === cat ? "text-primary" : "text-muted-foreground"}`}
         >
           {cat}
         </Link>

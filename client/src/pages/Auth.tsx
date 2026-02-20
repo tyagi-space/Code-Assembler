@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertUserSchema } from "@shared/schema";
+import { registerUserSchema } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-const registerSchema = insertUserSchema.extend({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+const registerSchema = registerUserSchema;
 
 export default function Auth() {
   const [location] = useLocation();
@@ -37,6 +35,9 @@ export default function Auth() {
   // Register Form
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      requestedRole: "user",
+    },
   });
 
   return (
@@ -118,6 +119,20 @@ export default function Auth() {
                     <Input id="reg-password" type="password" {...registerForm.register("password")} placeholder="••••••••" />
                     {registerForm.formState.errors.password && (
                       <p className="text-xs text-destructive">{registerForm.formState.errors.password.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-role">Register as</Label>
+                    <select
+                      id="reg-role"
+                      {...registerForm.register("requestedRole")}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="user">Normal User</option>
+                      <option value="admin">Admin (requires approval)</option>
+                    </select>
+                    {registerForm.formState.errors.requestedRole && (
+                      <p className="text-xs text-destructive">{registerForm.formState.errors.requestedRole.message}</p>
                     )}
                   </div>
                 </CardContent>
