@@ -1,0 +1,106 @@
+You are a senior full-stack software architect.
+
+Build a production-ready Daily News Update Portal with the following requirements:
+
+PROJECT OVERVIEW:
+Create a web application that:
+1. Fetches daily news automatically from major news portals (like BBC, CNN, Reuters, The Hindu, etc.).
+2. Parses and extracts structured news data (headline, description, image, author, publish date, source URL, category).
+3. Stores the data in a PostgreSQL database.
+4. Provides a public news listing interface.
+5. Provides a secure Admin Dashboard to manage content.
+
+TECH STACK:
+- Backend: FastAPI (Python)
+- Frontend: Jinja2 templates (or simple React if preferred)
+- Database: PostgreSQL
+- ORM: SQLAlchemy
+- Scheduler: APScheduler (for daily auto-fetch)
+- Web scraping: BeautifulSoup + Requests (or NewsAPI if required)
+- Authentication: JWT-based authentication
+- Password hashing: Passlib (bcrypt)
+- Environment management: .env support
+
+FEATURE REQUIREMENTS:
+
+1. DATABASE MODELS:
+Create the following tables:
+
+User:
+- id (UUID)
+- username
+- email
+- hashed_password
+- is_admin (boolean)
+- created_at
+
+News:
+- id (UUID)
+- title
+- description
+- content
+- image_url
+- source_name
+- source_url
+- category
+- published_at
+- created_at
+
+2. NEWS FETCHING SYSTEM:
+- Create a service that fetches news daily at 6 AM automatically.
+- Avoid duplicate entries (based on title or source_url).
+- Store structured data in the database.
+- Log failures properly.
+
+3. ADMIN FEATURES:
+- Admin login
+- Dashboard to:
+    - View all news
+    - Delete news
+    - Manually trigger fetch
+    - Filter by category/date/source
+
+4. PUBLIC FEATURES:
+- Homepage showing latest news
+- Category filtering
+- Search functionality
+- Pagination
+- Individual news detail page
+
+5. SECURITY:
+- Role-based access (admin vs normal user)
+- Secure password hashing
+- JWT token authentication
+- Protected admin routes
+
+6. API STRUCTURE:
+Organize project properly:
+- routers/
+- models/
+- schemas/
+- services/
+- core/
+- database/
+- main.py
+
+7. EXTRA FEATURES:
+- Add logging
+- Add error handling middleware
+- Add CORS support
+- Add Dockerfile
+- Add requirements.txt
+- Add .env example file
+
+8. DEPLOYMENT READY:
+- Make it runnable on Replit
+- Use environment variables for DB connection
+- Include instructions in README
+
+IMPORTANT:
+- Write clean, modular, scalable code.
+- Follow best practices.
+- Include comments.
+- Ensure the project runs without errors.
+- Provide step-by-step setup instructions.
+
+Generate full working code.
