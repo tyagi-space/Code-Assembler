@@ -1,106 +1,140 @@
-You are a senior full-stack software architect.
+Daily News Update Portal
+Project Owner: Kanha Tyagi
+Primary Maintainer: Kanha Tyagi
 
-Build a production-ready Daily News Update Portal with the following requirements:
+Project Status
+- Production-grade full-stack app is implemented using:
+  - Backend: Node.js + Express + TypeScript
+  - Frontend: React + Vite + Tailwind
+  - Database: PostgreSQL
+  - ORM: Drizzle ORM
+  - Scheduler: node-cron (every 5 hours)
+  - Auth: Session-based auth with Passport Local
 
-PROJECT OVERVIEW:
-Create a web application that:
-1. Fetches daily news automatically from major news portals (like BBC, CNN, Reuters, The Hindu, etc.).
-2. Parses and extracts structured news data (headline, description, image, author, publish date, source URL, category).
-3. Stores the data in a PostgreSQL database.
-4. Provides a public news listing interface.
-5. Provides a secure Admin Dashboard to manage content.
+Current Modules
+1) Authentication and User Management
+- Register/login/logout/me APIs
+- Role support: normal user or admin-request user
+- Admin approval workflow:
+  - requested admin users are created as pending/inactive
+  - existing admins can approve/reject requests
+- User lifecycle fields:
+  - is_admin
+  - is_active
+  - is_deleted (soft delete semantics for rejected admin requests)
+  - admin_status (pending/approved/rejected)
+- Reusable credentials for deleted users:
+  - partial unique indexes enforce username/email uniqueness only where is_deleted=false
 
-TECH STACK:
-- Backend: FastAPI (Python)
-- Frontend: Jinja2 templates (or simple React if preferred)
-- Database: PostgreSQL
-- ORM: SQLAlchemy
-- Scheduler: APScheduler (for daily auto-fetch)
-- Web scraping: BeautifulSoup + Requests (or NewsAPI if required)
-- Authentication: JWT-based authentication
-- Password hashing: Passlib (bcrypt)
-- Environment management: .env support
+2) News Ingestion and Scraping
+- Multi-source RSS ingestion by category
+- Per-article image extraction:
+  - RSS image fields first
+  - article page OG/Twitter/JSON-LD image fallback
+- Richer article text extraction from source page paragraph content
+- Duplicate prevention by source_url
+- Daily relevance filter:
+  - ingestion restricted to current UTC publish date for cron accuracy
 
-FEATURE REQUIREMENTS:
+3) News Management (Admin)
+- Single article delete
+- Manual fetch trigger
+- Manual scrape trigger
+- Bulk delete by category
+- Bulk delete by date (YYYY-MM-DD)
 
-1. DATABASE MODELS:
-Create the following tables:
+4) Admin Requests Module
+- View pending admin requests
+- Approve/reject request
+- Email notification on decision (SMTP-configured environments)
 
-User:
+5) Public News Portal
+- Latest feed
+- Category filtering
+- Search
+- Pagination
+- News detail page with richer readable content and article image
+
+Database Schema (current)
+User table
 - id (UUID)
 - username
 - email
-- hashed_password
+- password
 - is_admin (boolean)
+- is_active (boolean)
+- is_deleted (boolean)
+- admin_status (text: pending/approved/rejected)
 - created_at
+- partial unique indexes:
+  - users_username_active_uniq (username where is_deleted=false)
+  - users_email_active_uniq (email where is_deleted=false)
 
-News:
+News table
 - id (UUID)
 - title
 - description
 - content
 - image_url
 - source_name
-- source_url
+- source_url (unique)
 - category
 - published_at
 - created_at
 
-2. NEWS FETCHING SYSTEM:
-- Create a service that fetches news daily at 6 AM automatically.
-- Avoid duplicate entries (based on title or source_url).
-- Store structured data in the database.
-- Log failures properly.
+Session table
+- sid
+- sess
+- expire
 
-3. ADMIN FEATURES:
-- Admin login
-- Dashboard to:
-    - View all news
-    - Delete news
-    - Manually trigger fetch
-    - Filter by category/date/source
+API Endpoints (current)
+Auth
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/logout
+- GET /api/auth/me
 
-4. PUBLIC FEATURES:
-- Homepage showing latest news
-- Category filtering
-- Search functionality
-- Pagination
-- Individual news detail page
+News
+- GET /api/news
+- GET /api/news/:id
+- DELETE /api/news/:id (admin)
+- POST /api/news/fetch (admin)
+- POST /api/news/delete/category (admin)
+- POST /api/news/delete/date (admin)
 
-5. SECURITY:
-- Role-based access (admin vs normal user)
-- Secure password hashing
-- JWT token authentication
-- Protected admin routes
+Admin
+- POST /api/admin/scrape (admin)
+- GET /api/admin/requests/pending (admin)
+- POST /api/admin/requests/:id/approve (admin)
+- POST /api/admin/requests/:id/reject (admin)
 
-6. API STRUCTURE:
-Organize project properly:
-- routers/
-- models/
-- schemas/
-- services/
-- core/
-- database/
-- main.py
+Background Jobs
+- Cron schedule: every 5 hours
+- Scope: fetch current-date published items from configured sources
 
-7. EXTRA FEATURES:
-- Add logging
-- Add error handling middleware
-- Add CORS support
-- Add Dockerfile
-- Add requirements.txt
-- Add .env example file
+Environment Variables
+Required
+- DATABASE_URL
+- SESSION_SECRET
+- PORT
 
-8. DEPLOYMENT READY:
-- Make it runnable on Replit
-- Use environment variables for DB connection
-- Include instructions in README
+Optional (email notifications)
+- SMTP_HOST
+- SMTP_PORT
+- SMTP_USER
+- SMTP_PASS
+- SMTP_FROM
 
-IMPORTANT:
-- Write clean, modular, scalable code.
-- Follow best practices.
-- Include comments.
-- Ensure the project runs without errors.
-- Provide step-by-step setup instructions.
+Runbook
+1) npm install
+2) cp .env.example .env
+3) npm run db:up (optional, if using Docker DB)
+4) npm run db:push
+5) npm run dev
 
-Generate full working code.
+Notes
+- Migrations are applied via Drizzle push command: npm run db:push
+- Drizzle config: drizzle.config.ts
+- Schema source: shared/schema.ts
+
+Document updated for: Kanha Tyagi
